@@ -1,0 +1,398 @@
+﻿@page "/CompanySearch"
+@using StocksCourseworkWebapp.Models.Payloads
+@using StocksCourseworkWebapp.Services
+
+@inject NavigationManager NavigationManager
+@inject APIService ApiService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS 
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-16">
+
+    <MudGrid Justify="Justify.Center" Style="flex-direction: column; align-content:center; align-items:center">
+        <MudItem>
+            <MudText Align="Align.Center" Typo="Typo.h3" Color="Color.Primary">Company Search</MudText>
+        </MudItem>
+        <MudItem>
+            <MudText Align="Align.Center" Typo="Typo.h5" Color="Color.Secondary">Search for any company and we will fetch the information for you!</MudText>
+        </MudItem>
+        <MudItem>
+            <MudGrid Style="flex-direction:row">
+                <MudItem xs="10">
+                    <MudAutocomplete Variant="Variant.Outlined" T="string" Label="Stock Search" ValueChanged="@OnSearch" SearchFunc="@StockSearch" />
+                </MudItem>
+                <MudItem xs="2">
+                    <MudButton ButtonType="ButtonType.Button" Color="Color.Primary" OnClick="@(() => showAdvancedSearch = !showAdvancedSearch)" Variant="Variant.Filled"> Advanced Search </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudItem>
+        @if (showAdvancedSearch != false)
+        {
+            <MudItem>
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Advanced Search is currently limited to NASDAQ 100 due to database space limitations</MudAlert>
+            </MudItem>
+            <MudItem>
+                <MudGrid Style="flex-direction: row">
+                    <MudItem xs="3">
+                        <MudTextField T="string" Label="Symbol" Variant="Variant.Outlined" @bind-Value="advancedSearch.Symbol" />
+                    </MudItem>
+                    <MudItem xs="3">
+                        <MudTextField T="string" Label="Company Name" Variant="Variant.Outlined" @bind-Value="advancedSearch.CompanyName" />
+                    </MudItem>
+                    <MudItem xs="3">
+                        <MudTextField T="string" Label="Country" Variant="Variant.Outlined" @bind-Value="advancedSearch.Country" />
+                    </MudItem>
+                    <MudItem xs="3">
+                        <MudTextField T="string" Label="Industry" Variant="Variant.Outlined" @bind-Value="advancedSearch.Industry" />
+                    </MudItem>
+                </MudGrid>
+            </MudItem>
+            <MudItem>
+                <MudButton id="SubmitSearch" Size="Size.Large" Color="Color.Primary" ButtonType="ButtonType.Button" Variant="Variant.Filled" OnClick="runAdvancedSearch">Search!</MudButton>
+            </MudItem>
+        }
+    </MudGrid>
+    @if (showTable != false & showAdvancedSearch != false)
+    {
+
+            <MudGrid Justify="Justify.Center">
+                <MudTable  Items="advancedSearchTableData" Hover="true" Style="min-width:75%" @bind-SelectedItem="TableItemSelected">
+
+                    <HeaderContent>
+                        <MudTh>Symbol</MudTh>
+                        <MudTh>CompanyName</MudTh>
+                        <MudTh>Exchange</MudTh>
+                        <MudTh>IpoDate</MudTh>
+                        <MudTh>Industry</MudTh>
+                        <MudTh>MarketCapitalization</MudTh>
+                        <MudTh>SharesOutstanding</MudTh>
+                        <MudTh>CompanyUrl</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="row">
+                        <MudTd>@row.Symbol</MudTd>
+                        <MudTd>@row.CompanyName</MudTd>
+                        <MudTd>@row.Exchange</MudTd>
+                        <MudTd>@row.IpoDate</MudTd>
+                        <MudTd>@row.Industry</MudTd>
+                        <MudTd>@row.MarketCapitalization</MudTd>
+                        <MudTd>@row.SharesOutstanding</MudTd>
+                        <MudTd><MudLink Href="@row.CompanyUrl">@row.CompanyUrl</MudLink></MudTd>
+                    </RowTemplate>
+
+                </MudTable>
+            </MudGrid>
+
+    }
+
+    @if (showCompanyProfile != false)
+    {
+
+        <MudGrid Justify="Justify.Center">
+            @*company news and profile container*@
+
+            <MudItem xs="@flexSizeSwitcher">
+                <MudPaper Elevation="3" Class="pt-5">
+                    <MudGrid Style="flex-direction: row; justify-content: space-between" Class="pr-5 pl-5">
+                        @*row for company news*@
+
+                        <MudGrid Style="justify-content: center;" Class="pt-10">
+                            <MudItem>
+                                <MudAvatar Image="@CompanyProfile.Logo" Size="Size.Large" />
+                            </MudItem>
+                        </MudGrid>
+
+                        <MudItem>
+                            @*column one*@
+                            <MudGrid Class="pt-5" Style="flex-direction: column;">
+
+                                <MudItem>
+                                    <MudText Typo="Typo.h6" Color="Color.Primary">Company Name:</MudText>
+                                    <MudText Typo="Typo.body1">@CompanyProfile.CompanyName</MudText>
+                                </MudItem>
+                                <MudItem>
+                                    <MudText Typo="Typo.h6" Color="Color.Primary">Currency:</MudText>
+                                    <MudText Typo="Typo.body1">@CompanyProfile.Currency</MudText>
+                                </MudItem>
+                                <MudItem>
+                                    <MudText Typo="Typo.h6" Color="Color.Primary">Shares Outstanding:</MudText>
+                                    <MudText Typo="Typo.body1">@CompanyProfile.SharesOutstanding (Million)</MudText>
+                                </MudItem>
+
+                            </MudGrid>
+                        </MudItem>
+
+                        <MudItem>
+                            @*column two*@
+                            <MudGrid Class="pt-5" Style="flex-direction: column;">
+                                <MudItem>
+                                    <MudText Typo="Typo.h6" Color="Color.Primary">Symbol:</MudText>
+                                    <MudText Typo="Typo.body1">@CompanyProfile.Symbol</MudText>
+                                </MudItem>
+                                <MudItem>
+                                    <MudText Typo="Typo.h6" Color="Color.Primary">Country:</MudText>
+                                    <MudText Typo="Typo.body1">@CompanyProfile.Country</MudText>
+                                </MudItem>
+                                <MudItem>
+                                    <MudText Typo="Typo.h6" Color="Color.Primary">Market Capitalization:</MudText>
+                                    <MudText Typo="Typo.body1">@CompanyProfile.MarketCapitalization (Million)</MudText>
+                                </MudItem>
+                            </MudGrid>
+                        </MudItem>
+
+                        <MudItem>
+                            @*column three*@
+                            <MudGrid Class="pt-5" Style="flex-direction: column;">
+                                <MudItem>
+                                    <MudText Typo="Typo.h6" Color="Color.Primary">Company Exchange:</MudText>
+                                    <MudText Typo="Typo.body1">@CompanyProfile.Exchange</MudText>
+                                </MudItem>
+                                <MudItem>
+                                    <MudText Typo="Typo.h6" Color="Color.Primary">IPO Date:</MudText>
+                                    <MudText Typo="Typo.body1">@CompanyProfile.IpoDate</MudText>
+                                </MudItem>
+                                <MudItem>
+                                    <MudText Typo="Typo.h6" Color="Color.Primary">Company Url:</MudText>
+                                    <MudText Typo="Typo.body1">@CompanyProfile.CompanyUrl</MudText>
+                                </MudItem>
+                            </MudGrid>
+                        </MudItem>
+
+
+                    </MudGrid>
+                    <MudGrid Class="pt-5 pb-5" Justify="Justify.Center">
+
+                        <MudButton ButtonType="ButtonType.Button" OnClick="renderChart" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large">Trade @CompanyProfile.Symbol</MudButton>
+
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+            @if (CompanyNews.Count > newsViewCount)
+            {
+                <MudItem xs="6">
+                    <MudPaper Elevation="3" Class="pt-10" Style="height:100%">
+                        <MudGrid Style="flex-direction: column; justify-content: space-between; height:100%" Class="pr-10 pl-10 pb-5">
+
+                            <MudItem>
+                                <MudGrid Class="pt-10 pb-10" Justify="Justify.Center">
+                                    <MudText Typo="Typo.h4" Color="Color.Primary">Company News</MudText>
+                                </MudGrid>
+                            </MudItem>
+
+                            <MudGrid Justify="Justify.Center" Class="pb-10">
+
+                                <MudGrid Style="flex-direction: column;">
+                                    <MudItem>
+                                        <MudText Typo="Typo.h6" Align="Align.Center" Color="Color.Primary">@CompanyNews[newsViewCount].Headline</MudText>
+                                    </MudItem>
+                                    <MudItem>
+                                        <MudText Typo="Typo.body1">@CompanyNews[newsViewCount].Summary <MudLink Target="_blank" Href="@CompanyNews[newsViewCount].url"> See more...</MudLink></MudText>
+                                    </MudItem>
+                                    <MudItem>
+                                        <MudText Typo="Typo.body2">Source: @CompanyNews[newsViewCount].Source</MudText>
+                                    </MudItem>
+
+                                </MudGrid>
+
+
+
+                            </MudGrid>
+                            <MudGrid Justify="Justify.SpaceBetween" Class="pt-5 pb-n5 pl-2 pr-2">
+                                <MudButton ButtonType="ButtonType.Button" OnClick="displayPreviousNews" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large">Previous News Story</MudButton>
+                                <MudButton ButtonType="ButtonType.Button" OnClick="displayNextNews" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large">Next News Story</MudButton>
+                            </MudGrid>
+                        </MudGrid>
+                    </MudPaper>
+                </MudItem>
+            }
+            else
+            {
+                flexSizeSwitcher = 12;
+            }
+        </MudGrid>
+    }
+</MudContainer>
+
+@code {
+
+    public IEnumerable<candleSticksPayload> CandleData = new List<candleSticksPayload>();
+    public IEnumerable<AutoCompletePayload> autoCompleteStrings = new List<AutoCompletePayload>();
+    public CompanyProfilePayload CompanyProfile = new CompanyProfilePayload();
+    public List<CompanyNewsPayload> CompanyNews = new List<CompanyNewsPayload>();
+    public AdvancedSearch advancedSearch = new AdvancedSearch();
+    public List<CompanyProfilePayload> advancedSearchTableData = new List<CompanyProfilePayload>();
+    public bool showCompanyProfile = false;
+    public bool showAdvancedSearch = false;
+    public bool showTable = false;
+    public int newsViewCount;
+    public int flexSizeSwitcher;
+    private CompanyProfilePayload _value = new CompanyProfilePayload();
+    public CompanyProfilePayload TableItemSelected { get { return _value; } set { _value = value;  OnSelect(); } }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/", true);
+        }
+    }
+
+    private async Task OnSelect()
+    {
+        try
+        {
+            CompanyProfile = await ApiService.fetchCompanyProfile(TableItemSelected.Symbol);
+            CompanyNews = await ApiService.fetchCompanyNews(TableItemSelected.Symbol);
+            showCompanyProfile = true;
+            showTable = false;
+            showAdvancedSearch = false;
+            advancedSearchTableData = new List<CompanyProfilePayload>();
+            newsViewCount = 1;
+            flexSizeSwitcher = 6;
+
+            if (CompanyProfile.CompanyName == null)
+            {
+                Snackbar.Add("Sorry we could not find that company. Please try another.", Severity.Warning);
+            }
+
+            await JS.InvokeVoidAsync("clickButton");
+
+        }
+        catch (Exception e)
+        {
+            ApiService.throwSnackBarError();
+            Console.WriteLine(e);
+        }
+    }
+
+    private async Task OnSearch(string value)
+    {
+        try
+        {
+            var stringinput = autoCompleteStrings.Where(name => name.CompanyName == value).Select(name => name.Symbol).FirstOrDefault();
+
+            if (stringinput != null)
+            {
+
+                CompanyProfile = await ApiService.fetchCompanyProfile(stringinput);
+                CompanyNews = await ApiService.fetchCompanyNews(stringinput);
+                showCompanyProfile = true;
+                showTable = false;
+                showAdvancedSearch = false;
+                advancedSearchTableData = new List<CompanyProfilePayload>();
+                newsViewCount = 1;
+                flexSizeSwitcher = 6;
+
+                if (CompanyProfile.CompanyName == null)
+                {
+                    Snackbar.Add("Sorry we could not find that company. Please try another.", Severity.Warning);
+                }
+            }
+            else
+            {
+                throw new Exception();
+            }
+        }
+        catch (Exception e)
+        {
+            ApiService.throwSnackBarError();
+            Console.WriteLine(e);
+        }
+    }
+
+    private void displayNextNews()
+    {
+        try
+        {
+            if (CompanyNews.Count > newsViewCount)
+            {
+                newsViewCount++;
+            }
+            else
+            {
+                Snackbar.Add("No more news story's exist. Sorry for the inconvenience", Severity.Info);
+            }
+        }
+        catch (Exception e)
+        {
+            ApiService.throwSnackBarError();
+            Console.WriteLine(e);
+        }
+    }
+
+    private void displayPreviousNews()
+    {
+        try
+        {
+            if (newsViewCount != 1)
+            {
+                newsViewCount--;
+            }
+            else
+            {
+                Snackbar.Add("This is the first news story.", Severity.Info);
+            }
+        }
+        catch (Exception e)
+        {
+            ApiService.throwSnackBarError();
+            Console.WriteLine(e);
+        }
+    }
+
+    private async Task runAdvancedSearch()
+    {
+
+        try
+        {
+            advancedSearchTableData = await ApiService.fetchAdvancedAutoSearch(advancedSearch);
+            if(advancedSearchTableData.Count == 0)
+            {
+                Snackbar.Add("We were unable to find any results. Please try the normal search, or change your query.", Severity.Warning);
+            }
+            else
+            {
+                showTable = true;
+            }
+
+            StateHasChanged();
+        }
+        catch
+        {
+            ApiService.throwSnackBarError();
+        }
+    }
+
+    private async Task<IEnumerable<string>> StockSearch(string value)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return new string[0];
+            }
+            autoCompleteStrings = await ApiService.autoCompleteSymbolSearch(value);
+            return autoCompleteStrings.Select(symbol => symbol.CompanyName);
+        }
+        catch (Exception e)
+        {
+            ApiService.throwSnackBarError();
+            Console.WriteLine(e);
+            return new string[0];
+        }
+
+    }
+
+    private void renderChart()
+    {
+        var url = string.Format($"/trading-window/{CompanyProfile.Symbol}");
+        NavigationManager.NavigateTo(url, true);
+    }
+}

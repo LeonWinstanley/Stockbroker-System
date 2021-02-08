@@ -1,0 +1,292 @@
+﻿@page "/trading-window/{symbol}"
+
+@using StocksCourseworkWebapp.Models.Payloads
+@using StocksCourseworkWebapp.Services
+@using Syncfusion.Blazor.Charts
+@using StocksCourseworkWebapp.Models.DatabaseObjects
+
+@inject APIService ApiService
+@inject UserService UserService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-16">
+
+    <MudGrid Justify="Justify.Center">
+        <MudItem>
+            <MudText Align="Align.Center" Typo="Typo.h3" Color="Color.Primary">Trading Window</MudText>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Justify="Justify.Center" Style="flex-direction: row" Class="pb-5">
+        <MudItem Class="pt-10">
+            <MudText> Not the stock you want? Search here: </MudText>
+        </MudItem>
+        <MudItem>
+            <MudAutocomplete T="string" Label="Stock Search" ValueChanged="@UpdateCandleChart" SearchFunc="@StockSearch" />
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Style="flex-direction: row">
+
+        <MudItem xs="6">
+            <MudPaper Elevation="3">
+                <SfStockChart>
+                    <StockChartCrosshairSettings Enable="true"></StockChartCrosshairSettings>
+                    <StockChartTooltipSettings Enable="true" Shared="true" Format="${point.x} : ${point.y}" Header="@symbol"></StockChartTooltipSettings>
+                    <StockChartSeriesCollection>
+                        <StockChartSeries DataSource="@CandleData" Type="ChartSeriesType.Candle" XName="timestamp" High="high" Low="low" Open="open" Close="close" Volume="volume"></StockChartSeries>
+                    </StockChartSeriesCollection>
+                </SfStockChart>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6">
+
+            <MudPaper Elevation="3" Class="pt-3" Style="height: 100%">
+
+                <MudGrid Style="flex-direction: column; height:100%" Justify="Justify.SpaceEvenly" Class="pt-3 pl-5">
+
+                    <MudItem>
+
+                        @*Title Container*@
+
+                        <MudGrid Style="flex-direction: row;" Justify="Justify.Center">
+                            <MudText Typo="Typo.h4" Color="Color.Primary">@symbol</MudText>
+                        </MudGrid>
+                    </MudItem>
+                    <MudDivider Class="mr-5"></MudDivider>
+                    <MudItem>
+
+                        @*Quantity Selector*@
+                        <MudGrid Style="flex-direction: row;" Justify="Justify.Center">
+                            <MudItem xs="4">
+                                <MudTextField Label="Quantity" Variant="Variant.Outlined" @bind-Value="@stockQuantity"></MudTextField>
+                            </MudItem>
+                        </MudGrid>
+                    </MudItem>
+
+                    <MudItem>
+
+                        @*Buttons*@
+                        <MudGrid Style="flex-direction: row;" Justify="Justify.SpaceAround">
+                            <MudItem Style="width:40%">
+                                <MudButton ButtonType="ButtonType.Button" OnClick="@buyStock" Color="Color.Primary" Variant="Variant.Filled" Style="width: 100%">
+                                    <MudGrid Style="flex-direction: column">
+                                        <MudItem>
+                                            <MudText Typo="Typo.body1">Buy</MudText>
+                                        </MudItem>
+                                        <MudItem Class="mt-n6 mx-auto">
+                                            <MudText Typo="Typo.body1">@Math.Round(currentPrice.CurrentPrice, 2)</MudText>
+                                        </MudItem>
+                                    </MudGrid>
+                                </MudButton>
+                            </MudItem>
+                            <MudItem Style="width:40%">
+                                <MudButton ButtonType="ButtonType.Button" OnClick="@shortStock" Color="Color.Primary" Variant="Variant.Filled" Style="width: 100%">
+                                    <MudGrid Style="flex-direction: column">
+                                        <MudItem>
+                                            <MudText Typo="Typo.body1">Short</MudText>
+                                        </MudItem>
+                                        <MudItem Class="mt-n6 mx-auto">
+                                            <MudText Typo="Typo.body1">@Math.Round(currentPrice.CurrentPrice, 2)</MudText>
+                                        </MudItem>
+                                    </MudGrid>
+                                </MudButton>
+                            </MudItem>
+                        </MudGrid>
+                    </MudItem>
+
+                    <MudItem>
+
+                        @*Purchase Infomation*@
+
+                        <MudGrid Style="flex-direction: row;" Justify="Justify.Center">
+                            <MudItem>
+                                <MudGrid Style="flex-direction:column">
+                                    <MudItem>
+                                        <MudText Align="Align.Center" Typo="Typo.h6">Total Value : @(Math.Round(stockQuantity * currentPrice.CurrentPrice, 2)) (@account.DefaultCurrency)</MudText>
+                                    </MudItem>
+                                    <MudItem Class="mt-n7">
+                                        <MudText Align="Align.Center" Typo="Typo.h6">Available Balance : @(Math.Round(account.AccountBalanceConverted, 2)) (@account.DefaultCurrency)</MudText>
+                                    </MudItem>
+                                    <MudItem Class="mt-n7">
+                                        <MudText Align="Align.Center" Typo="Typo.h6">Balance Afterwards : @(Math.Round(account.AccountBalanceConverted - (stockQuantity * currentPrice.CurrentPrice), 2)) (@account.DefaultCurrency)</MudText>
+                                    </MudItem>
+                                </MudGrid>
+                            </MudItem>
+                        </MudGrid>
+                    </MudItem>
+
+
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+    @if (accountHoldings.Any())
+    {
+        <MudGrid Class="mt-16" Justify="Justify.Center">
+            <MudText Align="Align.Center" Typo="Typo.h3" Color="Color.Primary">Open Positions</MudText>
+        </MudGrid>
+        <MudGrid Style="flex-direction:column" Class="mt-5" Justify="Justify.Center">
+            <MudItem xs="12">
+                <MudPaper>
+                    <MudTable Items="tablePayload">
+                        <HeaderContent>
+                            <MudTh>Symbol</MudTh>
+                            <MudTh>Amount Bought</MudTh>
+                            <MudTh>Price When Bought</MudTh>
+                            <MudTh>Time of Purchase</MudTh>
+                            <MudTh>Type of Purchase</MudTh>
+                            <MudTh>Current Price</MudTh>
+                            <MudTh>Profit / Loss</MudTh>
+                            <MudTh>Close Position</MudTh>
+
+                        </HeaderContent>
+                        <RowTemplate Context="row">
+                            <MudTd DataLabel="Symbol">@row.Symbol</MudTd>
+                            <MudTd DataLabel="Amount">@row.Amount</MudTd>
+                            <MudTd DataLabel="PriceBought">@row.PriceBought</MudTd>
+                            <MudTd DataLabel="TimeBought">@row.TimeBought</MudTd>
+                            <MudTd DataLabel="Type">@row.Type</MudTd>
+                            <MudTd DataLabel="CurrentPrice">@row.CurrentPrice</MudTd>
+                            <MudTd DataLabel="Profit/Loss">@row.ProfitLoss</MudTd>
+                            <MudTd DataLabel="CloseButton"> <MudButton ButtonType="ButtonType.Button" OnClick="@(async () => await closePosition(@row))" Variant="Variant.Filled"> Close Position</MudButton> </MudTd>
+
+                        </RowTemplate>
+                    </MudTable>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
+
+</MudContainer>
+
+@code{
+    [Parameter]
+    public string symbol { get; set; }
+    public int stockQuantity = 1;
+    public StockQuotePayload currentPrice = new StockQuotePayload();
+    public AccountDetails account = new AccountDetails();
+
+    public IEnumerable<candleSticksPayload> CandleData = new List<candleSticksPayload>();
+    public IEnumerable<AutoCompletePayload> autoCompleteStrings = new List<AutoCompletePayload>();
+
+    public List<UserHoldings> accountHoldings = new List<UserHoldings>();
+    public List<StockQuotePayload> currentPositionPrices = new List<StockQuotePayload>();
+    public List<PositionTablePayload> tablePayload = new List<PositionTablePayload>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            account = await UserService.fetchAccountDetails(user.Identity.Name);
+            CandleData = await ApiService.fetchCandles(symbol, "15", 60, account.DefaultCurrency); //auto render
+            accountHoldings = await UserService.fetchUserHoldings(account.UserName);
+            currentPrice = await ApiService.fetchQuote(symbol, account.DefaultCurrency);
+            await fetchQuotes();
+            StateHasChanged();
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/", true);
+        }
+    }
+
+    private async Task fetchQuotes()
+    {
+        foreach (var element in accountHoldings)
+        {
+            var tempQuote = await ApiService.fetchQuote(element.Symbol, account.DefaultCurrency);
+
+            PositionTablePayload tempTablePayload = new PositionTablePayload
+            {
+                UserName = element.UserName,
+                Amount = element.Amount,
+                CurrentPrice = Math.Round(tempQuote.CurrentPrice, 2),
+                Symbol = element.Symbol,
+                PriceBought = Math.Round(element.PriceBought, 2),
+                Type = element.Type,
+                TimeBought = element.TimeBought,
+                ProfitLoss = (element.Type == "BUY") ? (tempQuote.CurrentPrice - element.PriceBought) * element.Amount : (element.PriceBought - tempQuote.CurrentPrice) * element.Amount
+            };
+            tablePayload.Add(tempTablePayload);
+        }
+    }
+
+    private async Task UpdateCandleChart(string value)
+    {
+        try
+        {
+            var fetchSymbol = autoCompleteStrings.Where(symbol => symbol.CompanyName == value).Select(symbol => symbol.Symbol);
+            CandleData = await ApiService.fetchCandles(fetchSymbol.FirstOrDefault(), "15", 7, account.DefaultCurrency);
+            symbol = fetchSymbol.FirstOrDefault();
+            currentPrice = await ApiService.fetchQuote(symbol, account.DefaultCurrency);
+            StateHasChanged();
+        }
+        catch (Exception e)
+        {
+            ApiService.throwSnackBarError();
+            Console.WriteLine(e);
+        }
+
+    }
+
+    private async Task<IEnumerable<string>> StockSearch(string value)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return new string[0];
+            }
+            autoCompleteStrings = await ApiService.autoCompleteSymbolSearch(value);
+            return autoCompleteStrings.Select(symbol => symbol.CompanyName);
+        }
+        catch (Exception e)
+        {
+            ApiService.throwSnackBarError();
+            Console.WriteLine(e);
+            throw;
+        }
+    }
+
+    private async Task buyStock()
+    {
+        UserHoldings holdings = new UserHoldings();
+
+        holdings.Amount = stockQuantity;
+        holdings.PriceBought = currentPrice.CurrentPrice;
+        holdings.TimeBought = DateTimeOffset.Now;
+        holdings.Symbol = symbol;
+        holdings.UserName = account.UserName;
+        holdings.Type = "BUY";
+
+        await UserService.purchaseStock(holdings);
+    }
+
+    private async Task shortStock()
+    {
+        UserHoldings holdings = new UserHoldings();
+
+        holdings.Amount = stockQuantity;
+        holdings.PriceBought = currentPrice.CurrentPrice;
+        holdings.TimeBought = DateTimeOffset.Now;
+        holdings.Symbol = symbol;
+        holdings.UserName = account.UserName;
+        holdings.Type = "SHORT";
+
+        await UserService.purchaseStock(holdings);
+    }
+
+    private async Task closePosition(PositionTablePayload holdings)
+    {
+        await UserService.closePosition(holdings, account);
+        NavigationManager.NavigateTo(NavigationManager.Uri, true);
+    }
+
+}
+
+

@@ -1,0 +1,31 @@
+﻿@using MudBlazor
+@using Microsoft.AspNetCore.Http.Extensions
+@inherits LayoutComponentBase
+
+@inject NavigationManager NavigationManager
+
+<MudNavMenu Style="margin-top: 0.5rem;">
+    
+    <AuthorizeView>
+
+        <Authorized>
+            <MudNavLink Href="/" Icon="@Icons.Material.Home">Home</MudNavLink>
+            <MudNavLink Href="/dashboard" Icon="@Icons.Material.Dashboard">Dashboard</MudNavLink>
+            <MudNavLink Href="/companySearch" Icon="@Icons.Material.Search">Company Search</MudNavLink>
+            <MudNavLink Href="/account" Icon="@Icons.Material.AccountCircle">Account Settings</MudNavLink>
+
+            <MudNavLink Href="/identity/account/logout">Logout</MudNavLink>
+        </Authorized>
+        <NotAuthorized>
+            <MudNavLink Href="/login" Icon="@Icons.Material.Login">Please Login</MudNavLink>
+        </NotAuthorized>
+    </AuthorizeView>
+    
+    
+    
+</MudNavMenu>
+
+@code
+{
+}
+

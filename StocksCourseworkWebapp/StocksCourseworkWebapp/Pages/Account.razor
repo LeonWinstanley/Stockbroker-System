@@ -1,0 +1,120 @@
+﻿@page "/account"
+@using StocksCourseworkWebapp.Services
+@using StocksCourseworkWebapp.Models.Payloads
+@using StocksCourseworkWebapp.Models.DatabaseObjects
+
+@inject NavigationManager NavigationManager
+@inject APIService ApiService
+@inject UserService userService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-16">
+
+    <MudGrid Justify="Justify.Center" Class="mt-16 mb-16">
+
+        <MudText Typo="Typo.h3" Color="Color.Primary"> Account </MudText>
+
+    </MudGrid>
+
+    <MudGrid Justify="Justify.Center" Class="mt-16 mb-16">
+
+        <MudItem xs="6">
+            <MudExpansionPanels MultiExpansion="false">
+                <MudExpansionPanel Text="Change Default Currency">
+
+
+                    <MudSelect T="string" ValueChanged="OnSelectedValue" OffsetY="true" Variant="Variant.Outlined" Label="Select Default Currency" MaxHeight="300">
+                        @foreach (var element in exchangeRates)
+                        {
+                            <MudSelectItem Value="@element.ExchangeCurrency">@element.ExchangeCurrency</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                </MudExpansionPanel>
+                <MudExpansionPanel Text="Deposit & Withdraw">
+                    <MudGrid Style="flex-direction: row" Justify="Justify.SpaceEvenly">
+                        <MudItem xs="6">
+                            <MudGrid Style="flex-direction: column; align-items: center">
+                                <MudItem>
+                                    <MudTextField Label="Deposit" T="decimal" @bind-Value="deposit"></MudTextField>
+                                </MudItem>
+                                <MudItem>
+                                    <MudButton ButtonType="ButtonType.Button" Color="Color.Primary" OnClick="Deposit" Variant="Variant.Filled"> Deposit (@account.DefaultCurrency) </MudButton>
+                                </MudItem>
+                            </MudGrid>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudGrid Style="flex-direction: column; align-items: center">
+                                <MudItem>
+                                    <MudTextField Label="Withdraw" T="decimal" @bind-Value="withdraw"></MudTextField>
+                                </MudItem>
+                                <MudItem>
+                                    <MudButton ButtonType="ButtonType.Button" Color="Color.Primary" OnClick="Withdraw" Variant="Variant.Filled"> Withdraw (@account.DefaultCurrency) </MudButton>
+                                </MudItem>
+                            </MudGrid>
+
+                        </MudItem>
+                    </MudGrid>
+                </MudExpansionPanel>
+                <MudExpansionPanel Text="Account Settings">
+                    <MudGrid Style="flex-direction:column; align-items:center" Justify="Justify.Center">
+                        <MudItem>
+                            <MudButton OnClick="@(() => NavigationManager.NavigateTo("/ChangePassword",true))">Change Password</MudButton>
+                        </MudItem>
+                        <MudItem>
+                            <MudButton OnClick="@(() => NavigationManager.NavigateTo("/TwoFactorAuthentication",true))">Two Factor Authentication</MudButton>
+                        </MudItem>
+                        <MudItem>
+                            <MudButton OnClick="@(() => NavigationManager.NavigateTo("/DeletePersonalData",true))">Delete Personal Data</MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        </MudItem>
+    </MudGrid>
+
+</MudContainer>
+
+
+
+
+@code {
+    List<CurrencyExchangePayload> exchangeRates = new List<CurrencyExchangePayload>();
+    AccountDetails account = new AccountDetails();
+
+    decimal withdraw = 0;
+    decimal deposit = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            exchangeRates = await ApiService.fetchCurrencyPayload();
+            account = await userService.fetchAccountDetails(user.Identity.Name);
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/", true);
+        }
+    }
+
+    private async void OnSelectedValue(string value)
+    {
+        await userService.setDefaultCurrency(value, account.UserName);
+        NavigationManager.NavigateTo(NavigationManager.Uri, true);
+    }
+
+    private async void Deposit()
+    {
+        await userService.deposit(account, deposit);
+        NavigationManager.NavigateTo(NavigationManager.Uri, true);
+    }
+    private async void Withdraw()
+    {
+        await userService.withdraw(account, withdraw);
+    }
+}

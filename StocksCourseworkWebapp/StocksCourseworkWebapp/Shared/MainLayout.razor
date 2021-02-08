@@ -1,0 +1,156 @@
+﻿@using StocksCourseworkWebapp.Services
+@using StocksCourseworkWebapp.Models.Payloads
+@using StocksCourseworkWebapp.Models.DatabaseObjects
+@inherits LayoutComponentBase
+@inject UserService UserService
+
+
+
+<MudThemeProvider Theme="currentTheme" />
+<MudDialogProvider FullWidth="true"
+                   MaxWidth="MaxWidth.ExtraSmall"
+                   CloseButton="true"
+                   DisableBackdropClick="true"
+                   NoHeader="true"
+                   Position="DialogPosition.Center" />
+<MudSnackbarProvider />
+<MudLayout Class="pb-5" Style="position: relative; min-height: 100vh">
+    @* ----- TopBar Begin   ----- *@
+    <div class="content-wrap">
+        <MudAppBar Color="Color.Primary" Fixed="true">
+            <MudIconButton Icon="@Icons.Material.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawerOne" />  @*Drawer Button*@
+            <MudText Style="margin-left:1rem;" Typo="Typo.h5">Market Trader Ltd</MudText>     @*Application Title*@
+            <MudAppBarSpacer />
+
+            <AuthorizeView>
+                <Authorized>
+                    <div class="pr-4">
+                        <MudText Typo="Typo.body1"> Username: @userName</MudText>
+                    </div>
+                    <div class="pr-4">
+                        <MudText Typo="Typo.body1"><MudIcon Icon="@Icons.Material.AccountBalanceWallet"></MudIcon> @Math.Round(account.AccountBalanceConverted,2) (@account.DefaultCurrency) Available</MudText>
+                    </div>
+                </Authorized>
+            </AuthorizeView>
+
+            <MudIconButton Icon="@Icons.Custom.Awesome" OnClick="@((e) => DarkMode())">Toggle Theme</MudIconButton>
+
+        </MudAppBar>
+        @* ----- TopBar End   ----- *@
+
+        @* ----- Drawer Start   ----- *@
+
+        @* ----- Drawer allows the side bar to be toggle   ----- *@
+        <MudDrawer @bind-Open="@DrawerOneOpen" Clipped="true" Elevation="1">
+            <SideBarNav />
+        </MudDrawer>
+
+        @* ----- Drawer End   ----- *@
+
+        @* ----- MainContent Start   ----- *@
+
+        <MudMainContent>
+
+            @Body
+
+        </MudMainContent>
+
+        @* ----- MainContent End   ----- *@
+    </div>
+</MudLayout>
+<footer class="footer">
+    <div class="container pb-3 ">
+        &copy; 2021 - Market Trader Ltd - <a asp-area="" asp-page="Privacy">Privacy</a>
+    </div>
+</footer>
+
+
+<style>
+    #content-wrap {
+        padding-bottom: 2.5rem; /* Footer height */
+    }
+
+    #footer {
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+        height: 2.5rem; /* Footer height */
+    }
+</style>
+
+
+@code{
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    string userName;
+    AccountDetails account = new AccountDetails();
+    bool DrawerOneOpen = false;
+
+    void ToggleDrawerOne()
+    {
+        DrawerOneOpen = !DrawerOneOpen;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await authenticationStateTask;
+        var user = authState.User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            userName = user.Identity.Name;
+            account = await UserService.fetchAccountDetails(userName);
+            StateHasChanged();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        currentTheme = defaultTheme;
+    }
+
+    void DarkMode()
+    {
+        if (currentTheme == defaultTheme)
+        {
+            currentTheme = darkTheme;
+        }
+        else
+        {
+            currentTheme = defaultTheme;
+        }
+    }
+
+    MudTheme currentTheme = new MudTheme();
+    MudTheme defaultTheme = new MudTheme()
+    {
+        Palette = new Palette()
+        {
+            Black = "#272c34"
+        }
+    };
+
+    MudTheme darkTheme = new MudTheme()
+    {
+        Palette = new Palette()
+        {
+            Black = "#27272f",
+            Background = "#32333d",
+            BackgroundGrey = "#27272f",
+            Surface = "#373740",
+            DrawerBackground = "#27272f",
+            DrawerText = "rgba(255,255,255, 0.50)",
+            DrawerIcon = "rgba(255,255,255, 0.50)",
+            AppbarBackground = "#27272f",
+            AppbarText = "rgba(255,255,255, 0.70)",
+            TextPrimary = "rgba(255,255,255, 0.70)",
+            TextSecondary = "rgba(255,255,255, 0.50)",
+            ActionDefault = "#adadb1",
+            ActionDisabled = "rgba(255,255,255, 0.26)",
+            ActionDisabledBackground = "rgba(255,255,255, 0.12)"
+        }
+    };
+
+}

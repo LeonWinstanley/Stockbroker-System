@@ -1,0 +1,226 @@
+﻿
+@page "/dashboard"
+@inject NavigationManager NavigationManager
+@inject UserService UserService
+@inject APIService ApiService
+@inject ISnackbar Snackbar
+
+@using StocksCourseworkWebapp.Models.Payloads
+@using StocksCourseworkWebapp.Services
+@using StocksCourseworkWebapp.Models.DatabaseObjects
+@using Syncfusion.Blazor.Charts
+@using System;
+
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-16">
+
+    <MudGrid Justify="Justify.Center" Style="flex-direction:column; align-items:center" Class="mb-16">
+        <MudItem><MudText Typo="Typo.h3" Color="Color.Primary">Dashboard</MudText></MudItem>
+        <MudItem><MudText Typo="Typo.h4" Color="Color.Secondary">The Gateway To All Your Information</MudText></MudItem>
+        <MudGrid Justify="Justify.Center" Style="flex-direction:row">
+            <MudItem xs="3">
+                <MudText Typo="Typo.h4" Color="Color.Primary">Account Balance = @Math.Round(account.AccountBalance, 2)</MudText>
+            </MudItem>
+            <MudItem xs="3">
+                <MudText Typo="Typo.h4" Color="Color.Primary">Available Balance = @Math.Round(account.AccountBalanceAvailable, 2)</MudText>
+            </MudItem>
+        </MudGrid>
+    </MudGrid>
+
+    <MudDivider></MudDivider>
+
+    <MudGrid Justify="Justify.Center" Style="flex-direction:row;">
+
+        <MudItem xs="@flexSizeSwitcher" Style=" min-height: 500px">
+            <MudPaper Elevation="3" Class="pt-10" Style="height:100%; min-height:200px">
+                <MudGrid Style="flex-direction: column; justify-content: space-between; height:100%" Class="pr-10 pl-10 pb-5">
+
+                    <MudGrid Justify="Justify.Center">
+                        <MudText Align="Align.Center" Typo="Typo.h3" Color="Color.Primary">Position Summary</MudText>
+                    </MudGrid>
+                    @if (tablePayload.Count != 0)
+                    {
+                        <MudGrid Style="flex-direction:column; " Class="mt-5" Justify="Justify.Center">
+                            <MudItem xs="12">
+                                <MudTable Items="tablePayload" FixedHeader="true" Height="350px">
+                                    <HeaderContent>
+                                        <MudTh>Symbol</MudTh>
+                                        <MudTh>Amount Bought</MudTh>
+                                        <MudTh>Price When Bought</MudTh>
+                                        <MudTh>Time of Purchase</MudTh>
+                                        <MudTh>Type of Purchase</MudTh>
+                                        <MudTh>Close Price</MudTh>
+                                        <MudTh>Profit / Loss</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate Context="row">
+                                        <MudTd DataLabel="Symbol">@row.Symbol</MudTd>
+                                        <MudTd DataLabel="Amount">@row.Amount</MudTd>
+                                        <MudTd DataLabel="PriceBought">@row.PriceBought</MudTd>
+                                        <MudTd DataLabel="TimeBought">@row.TimeBought</MudTd>
+                                        <MudTd DataLabel="Type">@row.Type</MudTd>
+                                        <MudTd DataLabel="Close">@row.PriceSold</MudTd>
+                                        <MudTd DataLabel="Profit/Loss">@row.ProfitLoss</MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            </MudItem>
+                        </MudGrid>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">You haven't made any trades yet</MudAlert>
+
+                    }
+
+                </MudGrid>
+                </MudPaper>
+</MudItem>
+        @if (MarketNews.Count > newsViewCount)
+        {
+            <MudItem xs="6">
+                <MudPaper Elevation="3" Class="pt-10" Style="height:100%; min-height:200px">
+                    <MudGrid Style="flex-direction: column; justify-content: space-between; height:100%" Class="pr-10 pl-10 pb-5">
+
+                        <MudItem>
+                            <MudGrid Justify="Justify.Center">
+                                <MudText Typo="Typo.h3" Color="Color.Primary">Market News</MudText>
+                            </MudGrid>
+                        </MudItem>
+                        <MudGrid Justify="Justify.Center" Class="pb-10">
+                            <MudGrid Style="flex-direction: column;">
+                                <MudItem>
+                                    <MudText Typo="Typo.h6" Align="Align.Center" Color="Color.Primary">@MarketNews[newsViewCount].Headline</MudText>
+                                </MudItem>
+                                <MudItem>
+                                    <MudText Typo="Typo.body1">@MarketNews[newsViewCount].Summary <MudLink Target="_blank" Href="@MarketNews[newsViewCount].url"> See more...</MudLink></MudText>
+                                </MudItem>
+                                <MudItem>
+                                    <MudText Typo="Typo.body2">Source: @MarketNews[newsViewCount].Source</MudText>
+                                </MudItem>
+                            </MudGrid>
+                        </MudGrid>
+                        <MudGrid Justify="Justify.SpaceBetween" Class="pt-5 pl-2 pr-2">
+                            <MudButton ButtonType="ButtonType.Button" OnClick="displayPreviousNews" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large">Previous News Story</MudButton>
+                            <MudButton ButtonType="ButtonType.Button" OnClick="displayNextNews" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large">Next News Story</MudButton>
+                        </MudGrid>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+        }
+        else
+        {
+            flexSizeSwitcher = 12;
+        }
+    </MudGrid>
+
+</MudContainer>
+
+
+
+
+
+@code {
+
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationStateTask { get; set; }
+    public List<PositionTablePayload> tablePayload = new List<PositionTablePayload>();
+    public List<UserHoldings> accountHoldings = new List<UserHoldings>();
+    public AccountDetails account = new AccountDetails();
+    public List<CompanyNewsPayload> MarketNews = new List<CompanyNewsPayload>();
+    public int newsViewCount;
+    public int flexSizeSwitcher;
+
+
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateTask;
+        var user = authState.User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            account = await UserService.fetchAccountDetails(user.Identity.Name);
+            accountHoldings = await UserService.fetchAllUserHoldings(account.UserName);
+            MarketNews = await ApiService.fetchMarketNews();
+            if (MarketNews.Count > 0)
+            {
+                flexSizeSwitcher = 6;
+            }
+            else
+            {
+                flexSizeSwitcher = 12;
+            }
+            await fetchQuotes();
+            StateHasChanged();
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/", true);
+        }
+    }
+
+    private void displayNextNews()
+    {
+        try
+        {
+            if (MarketNews.Count > newsViewCount)
+            {
+                newsViewCount++;
+            }
+            else
+            {
+                Snackbar.Add("No more news story's exist. Sorry for the inconvenience", Severity.Info);
+            }
+        }
+        catch (Exception e)
+        {
+            ApiService.throwSnackBarError();
+            Console.WriteLine(e);
+        }
+    }
+
+    private void displayPreviousNews()
+    {
+        try
+        {
+            if (newsViewCount != 1)
+            {
+                newsViewCount--;
+            }
+            else
+            {
+                Snackbar.Add("This is the first news story.", Severity.Info);
+            }
+        }
+        catch (Exception e)
+        {
+            ApiService.throwSnackBarError();
+            Console.WriteLine(e);
+        }
+    }
+
+    private async Task fetchQuotes()
+    {
+        foreach (var element in accountHoldings)
+        {
+            var tempQuote = await ApiService.fetchQuote(element.Symbol, account.DefaultCurrency);
+
+            PositionTablePayload tempTablePayload = new PositionTablePayload
+            {
+                UserName = element.UserName,
+                Amount = element.Amount,
+                CurrentPrice = Math.Round(tempQuote.CurrentPrice, 2),
+                Symbol = element.Symbol,
+                PriceBought = Math.Round(element.PriceBought, 2),
+                Type = element.Type,
+                PriceSold = element.PriceSold,
+                TimeBought = element.TimeBought,
+                ProfitLoss = (element.Type == "BUY") ? (tempQuote.CurrentPrice - element.PriceBought) * element.Amount : (element.PriceBought - tempQuote.CurrentPrice) * element.Amount
+            };
+            tablePayload.Add(tempTablePayload);
+        }
+    }
+}
+

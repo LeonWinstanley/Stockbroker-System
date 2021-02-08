@@ -1,0 +1,104 @@
+﻿@page "/"
+
+@inject NavigationManager NavigationManager 
+
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-16">
+    <MudGrid Justify="Justify.Center" Class="mt-16">
+        <img src="Images/Logo.gif" alt="Company Logo" Class="mt-16"/>
+    </MudGrid>
+    <MudGrid Justify="Justify.Center" class="mt-16 mb-16">
+        
+        <AuthorizeView>
+            <Authorized>
+                <MudButton ButtonType="ButtonType.Button" OnClick="authClick" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large">Dashboard</MudButton>
+            </Authorized>
+            <NotAuthorized>
+                <MudButton ButtonType="ButtonType.Button" OnClick="notAuthClick" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large">Get Started!</MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
+        
+        
+
+    </MudGrid>
+
+    <MudDivider class="mt-5 mb-5"></MudDivider>
+
+
+    <MudGrid Justify="Justify.Center" Class="mt-16">
+        <MudText Class="mt-16" Color="Color.Primary" Typo="Typo.h3">Our Services</MudText>
+    </MudGrid>
+    <MudGrid Justify="Justify.Center" Style="flex-direction: row;" Class="mt-16 mb-16">
+        <MudItem>
+            <img src="Images/indexPageImg.jpg" width="400px" height="200px" />
+        </MudItem>
+        <MudItem Style="flex-direction: column;">
+            <MudText Typo="Typo.h6">Welcome to Market Trader Ltd. We pride ourselves in doing </MudText>
+            <MudText Typo="Typo.h6">things differently!</MudText>
+            <MudText Typo="Typo.body1">Here we aim to give you all the tools and insight you need to track and react</MudText>
+            <MudText Typo="Typo.body1">to every aspect of the market. Whether you're looking to trade fast or invest </MudText>
+            <MudText Typo="Typo.body1">for the future, our protects put you in control! Supercharge your strategies</MudText>
+            <MudText Typo="Typo.body1">and enhance your instincts with the very latest tech and knowledge.</MudText>
+        </MudItem>
+    </MudGrid>
+    
+    
+
+    <MudDivider class="mt-5 mb-5"></MudDivider>
+
+    <MudGrid Justify="Justify.Center" Class="mt-16">
+        <MudText Class="mt-16" Color="Color.Primary" Typo="Typo.h3">Who Are We?</MudText>
+    </MudGrid>
+    <MudGrid Justify="Justify.Center" Style="flex-direction: row;" Class="mt-16 mb-16">
+        <MudItem Style="flex-direction: column;">
+            <MudText Typo="Typo.h6">I'm sure you're "wondering who are Market Trading Ltd?". </MudText>
+            <MudText Typo="Typo.body1">Well you've come to the right place to find out! We haven't started the </MudText>
+            <MudText Typo="Typo.body1">same as most other stockbrokers. We are a small team aiming for the best,</MudText>
+            <MudText Typo="Typo.body1">for our customers. As we are a small team of developers we are able to</MudText>
+            <MudText Typo="Typo.body1">offer a friend like relationship with our customers. We aren't like the </MudText>
+            <MudText Typo="Typo.body1">other bigger stock brokers, we care about you! After all this is our</MudText>
+            <MudText Typo="Typo.body1">startup! </MudText>
+        </MudItem>
+        <MudItem>
+            <img src="Images/WhoAreWe.PNG" width="400px" height="200px" />
+        </MudItem>
+    </MudGrid>
+    <MudGrid Justify="Justify.Center" Style="flex-direction: row;" Class="mt-16 mb-16">
+        <MudItem>
+            <img src="Images/WhyChooseUs.PNG" width="400px" height="200px" />
+        </MudItem>
+        <MudItem Style="flex-direction: column;">
+            <MudText Typo="Typo.h6">Now the most important question. Why choose us? </MudText>
+            <MudText Typo="Typo.body1">Well first of all. Market Trading Ltd is the place for anyone wanting to start</MudText>
+            <MudText Typo="Typo.body1">or even continue investing. We offer many different symbols from the US stock</MudText>
+            <MudText Typo="Typo.body1">exchange and are planning on adding more markets as we grow! You can control</MudText>
+            <MudText Typo="Typo.body1">everything about your account from one place. Using our cutting-edge technology</MudText>
+            <MudText Typo="Typo.body1">you can start your own adventure! Take your trading to the next level. Top tools</MudText>
+            <MudText Typo="Typo.body1">and insights on a fast platform. So, when the market moves, you can move with it!</MudText>
+        </MudItem>
+
+    </MudGrid>
+
+
+
+
+
+
+
+
+</MudContainer>
+
+@code
+{
+    void notAuthClick()
+    {
+        NavigationManager.NavigateTo("login",true);
+    }
+
+    void authClick()
+    {
+        NavigationManager.NavigateTo("/dashboard");
+    }
+}
+
+
